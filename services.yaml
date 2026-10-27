@@ -1,0 +1,27 @@
+- Apps:
+    - Actual Budget:
+        icon: actual-budget.png
+        href: https://budget.{{HOMEPAGE_VAR_DOMAIN}}
+        description: Personal budgeting
+        server: local-docker
+        container: actual
+    - Part-DB:
+        icon: mdi-chip
+        href: https://parts.{{HOMEPAGE_VAR_DOMAIN}}
+        description: Electronic parts inventory
+        server: local-docker
+        container: partdb
+
+- Infrastructure:
+    - WireGuard:
+        icon: wireguard.png
+        href: https://wg.{{HOMEPAGE_VAR_DOMAIN}}
+        description: VPN clients
+        server: local-docker
+        container: wg-easy
+    - Traefik:
+        icon: traefik.png
+        href: https://traefik.{{HOMEPAGE_VAR_DOMAIN}}
+        description: Reverse proxy dashboard
+        server: local-docker
+        container: traefik

@@ -1,0 +1,175 @@
+# VPN-only self-hosted stack
+# Only UDP 51820 (WireGuard) is exposed to the internet.
+# Traefik publishes NO host ports: it's only reachable from inside the
+# "proxy" Docker network, which VPN clients are routed into via wg-easy.
+
+networks:
+  proxy:
+    name: proxy
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24   # change if it clashes with your home LAN
+          ip_range: 172.20.0.128/25
+  socket:
+    name: socket
+    internal: true               # no outbound access; only for the socket proxy
+
+services:
+
+  # ---------------------------------------------------------------- WireGuard
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:15
+    container_name: wg-easy
+    restart: unless-stopped
+    environment:
+      - INSECURE=true            # TLS is handled by Traefik; UI is never public
+      - DISABLE_IPV6=true
+      # Unattended setup, only applied on the very first start
+      - INIT_ENABLED=true
+      - INIT_USERNAME=${WG_ADMIN_USER}
+      - INIT_PASSWORD=${WG_ADMIN_PASSWORD}
+      - INIT_HOST=${WG_HOST}
+      - INIT_PORT=51820
+      - INIT_DNS=1.1.1.1,1.0.0.1
+      # Split tunnel: clients only route the VPN subnet + Docker proxy network
+      - INIT_ALLOWED_IPS=10.8.0.0/24,172.20.0.0/24
+    volumes:
+      - ./data/wg-easy:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+      - "127.0.0.1:51821:51821/tcp"   # bootstrap access via SSH tunnel only
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.wg.rule=Host(`wg.${DOMAIN}`)
+      - traefik.http.routers.wg.entrypoints=websecure
+      - traefik.http.services.wg.loadbalancer.server.port=51821
+
+  # ------------------------------------------------------------ Socket proxy
+  # Read-only, filtered access to the Docker API for Traefik and Homepage,
+  # so neither gets the raw docker.sock.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: socket-proxy
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket
+
+  # ----------------------------------------------------------- Reverse proxy
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    command:
+      - --log.level=INFO
+      - --api.dashboard=true
+      - --providers.docker.endpoint=tcp://socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls.certresolver=cloudflare
+      # One wildcard cert, so individual subdomains don't show up in
+      # public certificate transparency logs
+      - --entrypoints.websecure.http.tls.domains[0].main=${DOMAIN}
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.${DOMAIN}
+      - --certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+    volumes:
+      - ./data/traefik:/letsencrypt
+    # Intentionally no "ports:" section
+    networks:
+      proxy:
+        ipv4_address: 172.20.0.10
+      socket:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.service=api@internal
+
+  # ------------------------------------------------------------------ Part-DB
+  partdb:
+    image: jbtronics/part-db1:latest
+    container_name: partdb
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=sqlite:///%kernel.project_dir%/var/db/app.db
+      - APP_ENV=docker
+      - DB_AUTOMIGRATE=true
+      - TRUSTED_PROXIES=172.20.0.0/24
+      - DEFAULT_LANG=en
+      - DEFAULT_TIMEZONE=${TZ}
+      - BASE_CURRENCY=${CURRENCY}
+      - INSTANCE_NAME=Part-DB
+      - ALLOW_ATTACHMENT_DOWNLOADS=0
+      - USE_GRAVATAR=0
+    volumes:
+      - ./data/partdb/uploads:/var/www/html/uploads
+      - ./data/partdb/public_media:/var/www/html/public/media
+      - ./data/partdb/db:/var/www/html/var/db
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.partdb.rule=Host(`parts.${DOMAIN}`)
+      - traefik.http.routers.partdb.entrypoints=websecure
+      - traefik.http.services.partdb.loadbalancer.server.port=80
+
+  # ------------------------------------------------------------ Actual Budget
+  actual:
+    image: actualbudget/actual-server:latest
+    container_name: actual
+    restart: unless-stopped
+    volumes:
+      - ./data/actual:/data
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.actual.rule=Host(`budget.${DOMAIN}`)
+      - traefik.http.routers.actual.entrypoints=websecure
+      - traefik.http.services.actual.loadbalancer.server.port=5006
+
+  # ----------------------------------------------------------------- Homepage
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    environment:
+      - HOMEPAGE_ALLOWED_HOSTS=hp.${DOMAIN}
+      - HOMEPAGE_VAR_DOMAIN=${DOMAIN}
+      - TZ=${TZ}
+    volumes:
+      - ./homepage:/app/config
+    networks:
+      - proxy
+      - socket
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.homepage.rule=Host(`hp.${DOMAIN}`)
+      - traefik.http.routers.homepage.entrypoints=websecure
+      - traefik.http.services.homepage.loadbalancer.server.port=3000
