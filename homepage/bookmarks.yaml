@@ -1,0 +1,82 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/bookmarks
+
+- Developer:
+    - Github:
+        - abbr: GH
+          icon: https://www.google.com/s2/favicons?sz=32&domain=github.com
+          href: https://github.com/seblovett
+    - QuickRef:
+        - abbr: QR
+          href: https://quickref.me/
+          icon: https://www.google.com/s2/favicons?sz=32&domain=quickref.me
+    - CyberChef:
+        - abbr: CC
+          href: https://gchq.github.io/CyberChef/
+          icon: https://www.google.com/s2/favicons?sz=32&domain=https://gchq.github.io/CyberChef/
+    - Draw.IO:
+        - abbr: DI
+          href: https://app.diagrams.net/
+          icon: https://www.google.com/s2/favicons?sz=32&domain=https://app.diagrams.net/
+
+- Admin:
+    - GMail:
+        - abbr: GM
+          icon: https://www.google.com/s2/favicons?sz=32&domain=gmail.com
+          href: https://mail.google.com/
+    - Fastmail:
+        - abbr: FM
+          icon: https://www.google.com/s2/favicons?sz=32&domain=mail.seblovett.co.uk
+          href: https://mail.seblovett.co.uk/
+    - Notion:
+        - abbr: NO
+          icon: https://www.google.com/s2/favicons?sz=32&domain=notion.so
+          href: https://notion.so/
+    - Calendar:
+        - abbr: CA
+          icon: https://www.google.com/s2/favicons?sz=32&domain=calendar.google.com
+          href: https://calendar.google.com/
+
+- Entertainment:
+    - YouTube:
+        - abbr: YT
+          href: https://youtube.com/
+    - BBC:
+        - abbr: BBC
+          icon: https://www.google.com/s2/favicons?sz=32&domain=bbc.com/news
+          href: https://www.bbc.co.uk/news
+    - Music:
+        - abbr: MU
+          icon: https://www.google.com/s2/favicons?sz=32&domain=music.youtube.com
+          href: https://music.youtube.com/
+    - YouTube:
+        - abbr: YT
+          href: https://youtube.com/
+- Blogs: 
+    - Hacker News:
+        - abbr: HN
+          href: https://news.ycombinator.com
+          icon: https://www.google.com/s2/favicons?sz=32&domain=news.ycombinator.com
+    - Ars Technica:
+        - abbr: AT
+          href: https://arstechnica.com
+          icon: https://www.google.com/s2/favicons?sz=32&domain=arstechnica.com
+    - Hackaday:
+        - abbr: HD
+          href: https://hackaday.com
+          icon: https://www.google.com/s2/favicons?sz=32&domain=hackaday.com
+    - CNX Software:
+        - abbr: CN
+          href: https://www.cnx-software.com
+          icon: https://www.google.com/s2/favicons?sz=32&domain=cnx-software.com
+- Tools:
+    - Food:
+        - abbr: FD
+          href: https://food.seblovett.co.uk
+          icon: https://www.google.com/s2/favicons?sz=32&domain=food.seblovett.co.uk
+    - Calculators:
+        - abbr: CL
+          href: https://calculators.seblovett.co.uk
+          icon: https://www.google.com/s2/favicons?sz=32&domain=calculators.seblovett.co.uk
+

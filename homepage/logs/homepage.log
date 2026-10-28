@@ -1,0 +1,345 @@
+[2026-10-27T10:52:31.327Z] info: kubernetes.yaml was copied to the config folder
+[2026-10-27T11:42:57.330Z] info: docker.yaml was copied to the config folder
+[2026-10-27T11:42:57.337Z] info: bookmarks.yaml was copied to the config folder
+[2026-10-27T11:42:57.343Z] info: widgets.yaml was copied to the config folder
+[2026-10-27T11:42:57.381Z] info: services.yaml was copied to the config folder
+[2026-10-27T11:42:58.292Z] info: proxmox.yaml was copied to the config folder
+[2026-10-27T11:42:58.320Z] info: custom.css was copied to the config folder
+[2026-10-27T11:42:58.323Z] info: custom.js was copied to the config folder
+[2026-10-27T15:46:08.112Z] error: <dockerStatuses> TypeError: Cannot read properties of null (reading 'local-docker')
+    at k (/app/.next/server/chunks/7546.js:1:16560)
+    at l (/app/.next/server/pages/api/docker/statuses.js:2:1646)
+    at i (/app/.next/server/pages/api/docker/statuses.js:1:5228)
+    at /app/.next/server/chunks/205.js:2:5363
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-10-27T15:46:13.111Z] error: <dockerStats> TypeError: Cannot read properties of null (reading 'local-docker')
+    at k (/app/.next/server/chunks/7546.js:1:16560)
+    at m (/app/.next/server/pages/api/docker/stats.js:2:2073)
+    at i (/app/.next/server/pages/api/docker/stats.js:2:1397)
+    at /app/.next/server/chunks/205.js:2:5363
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-10-27T15:46:13.116Z] error: <dockerStatuses> TypeError: Cannot read properties of null (reading 'local-docker')
+    at k (/app/.next/server/chunks/7546.js:1:16560)
+    at l (/app/.next/server/pages/api/docker/statuses.js:2:1646)
+    at i (/app/.next/server/pages/api/docker/statuses.js:1:5228)
+    at /app/.next/server/chunks/205.js:2:5363
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-10-27T15:46:23.410Z] error: <dockerStatuses> TypeError: Cannot read properties of null (reading 'local-docker')
+    at k (/app/.next/server/chunks/7546.js:1:16560)
+    at l (/app/.next/server/pages/api/docker/statuses.js:2:1646)
+    at i (/app/.next/server/pages/api/docker/statuses.js:1:5228)
+    at /app/.next/server/chunks/205.js:2:5363
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-10-27T15:46:23.417Z] error: <dockerStats> TypeError: Cannot read properties of null (reading 'local-docker')
+    at k (/app/.next/server/chunks/7546.js:1:16560)
+    at m (/app/.next/server/pages/api/docker/stats.js:2:2073)
+    at i (/app/.next/server/pages/api/docker/stats.js:2:1397)
+    at /app/.next/server/chunks/205.js:2:5363
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-10-27T15:47:49.041Z] info: kubernetes.yaml was copied to the config folder
+[2026-10-27T15:47:49.043Z] info: proxmox.yaml was copied to the config folder
+[2026-10-27T18:51:26.400Z] error: Failed to load widgets, please check widgets.yaml for errors or remove example entries.
+[2026-10-27T18:51:26.408Z] error: end of the stream or a document separator is expected (13:1)
+
+ 10 | - search:
+ 11 |     provider: duckduckgo
+ 12 |     target: _blank
+ 13 | widget:
+------^
+ 14 |   type: traefik
+ 15 |   url: http://traefik.host.or.ip
+[2026-10-27T18:51:26.495Z] error: Failed to load widgets, please check widgets.yaml for errors or remove example entries.
+[2026-10-27T18:51:26.497Z] error: end of the stream or a document separator is expected (13:1)
+
+ 10 | - search:
+ 11 |     provider: duckduckgo
+ 12 |     target: _blank
+ 13 | widget:
+------^
+ 14 |   type: traefik
+ 15 |   url: http://traefik.host.or.ip
+[2026-10-27T18:51:26.822Z] error: Failed to load widgets, please check widgets.yaml for errors or remove example entries.
+[2026-10-27T18:51:26.823Z] error: end of the stream or a document separator is expected (13:1)
+
+ 10 | - search:
+ 11 |     provider: duckduckgo
+ 12 |     target: _blank
+ 13 | widget:
+------^
+ 14 |   type: traefik
+ 15 |   url: http://traefik.host.or.ip
+[2026-10-27T18:51:36.521Z] error: Failed to load widgets, please check widgets.yaml for errors or remove example entries.
+[2026-10-27T18:51:36.522Z] error: end of the stream or a document separator is expected (13:1)
+
+ 10 | - search:
+ 11 |     provider: duckduckgo
+ 12 |     target: _blank
+ 13 | widget:
+------^
+ 14 |   type: traefik
+ 15 |   url: http://traefik.host.or.ip
+[2026-10-27T18:59:06.758Z] error: <configValidationHandler> Configuration validation errors [
+  {
+    reason: 'end of the stream or a document separator is expected',
+    mark: {
+      name: '',
+      buffer: '---\n' +
+        '# For configuration options and examples, please see:\n' +
+        '# https://gethomepage.dev/configs/bookmarks\n' +
+        'layout:\n' +
+        '  Media:\n' +
+        '    style: row\n' +
+        '    columns: 4\n' +
+        '- Developer:\n' +
+        '    - Github:\n' +
+        '        - abbr: GH\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=github.com\n' +
+        '          href: https://github.com/seblovett\n' +
+        '    - QuickRef:\n' +
+        '        - abbr: QR\n' +
+        '          href: https://quickref.me/\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=quickref.me\n' +
+        '    - CyberChef:\n' +
+        '        - abbr: CC\n' +
+        '          href: https://gchq.github.io/CyberChef/\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=https://gchq.github.io/CyberChef/\n' +
+        '    - Draw.IO:\n' +
+        '        - abbr: DI\n' +
+        '          href: https://app.diagrams.net/\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=https://app.diagrams.net/\n' +
+        '\n' +
+        '- Admin:\n' +
+        '    - GMail:\n' +
+        '        - abbr: GM\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=gmail.com\n' +
+        '          href: https://mail.google.com/\n' +
+        '    - Fastmail:\n' +
+        '        - abbr: FM\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=mail.seblovett.co.uk\n' +
+        '          href: https://mail.seblovett.co.uk/\n' +
+        '    - Notion:\n' +
+        '        - abbr: NO\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=notion.so\n' +
+        '          href: https://notion.so/\n' +
+        '    - Calendar:\n' +
+        '        - abbr: CA\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=calendar.google.com\n' +
+        '          href: https://calendar.google.com/\n' +
+        '\n' +
+        '- Entertainment:\n' +
+        '    - YouTube:\n' +
+        '        - abbr: YT\n' +
+        '          href: https://youtube.com/\n' +
+        '    - BBC:\n' +
+        '        - abbr: BBC\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=bbc.com/news\n' +
+        '          href: https://www.bbc.co.uk/news\n' +
+        '    - Music:\n' +
+        '        - abbr: MU\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=music.youtube.com\n' +
+        '          href: https://music.youtube.com/\n' +
+        '    - YouTube:\n' +
+        '        - abbr: YT\n' +
+        '          href: https://youtube.com/\n' +
+        '- Blogs: \n' +
+        '    - Hacker News:\n' +
+        '        - abbr: HN\n' +
+        '          href: https://news.ycombinator.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=news.ycombinator.com\n' +
+        '    - Ars Technica:\n' +
+        '        - abbr: AT\n' +
+        '          href: https://arstechnica.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=arstechnica.com\n' +
+        '    - Hackaday:\n' +
+        '        - abbr: HD\n' +
+        '          href: https://hackaday.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=hackaday.com\n' +
+        '    - CNX Software:\n' +
+        '        - abbr: CN\n' +
+        '          href: https://www.cnx-software.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=cnx-software.com\n' +
+        '- Tools:\n' +
+        '    - Food:\n' +
+        '        - abbr: FD\n' +
+        '          href: https://food.seblovett.co.uk\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=food.seblovett.co.uk\n' +
+        '    - Calculators:\n' +
+        '        - abbr: CL\n' +
+        '          href: https://calculators.seblovett.co.uk\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=calculators.seblovett.co.uk\n' +
+        '\n',
+      position: 149,
+      line: 7,
+      column: 0,
+      snippet: ' 5 |   Media:\n' +
+        ' 6 |     style: row\n' +
+        ' 7 |     columns: 4\n' +
+        ' 8 | - Developer:\n' +
+        '-----^\n' +
+        ' 9 |     - Github:\n' +
+        ' 10 |         - abbr: GH'
+    },
+    name: 'YAMLException',
+    message: 'end of the stream or a document separator is expected (8:1)\n' +
+      '\n' +
+      ' 5 |   Media:\n' +
+      ' 6 |     style: row\n' +
+      ' 7 |     columns: 4\n' +
+      ' 8 | - Developer:\n' +
+      '-----^\n' +
+      ' 9 |     - Github:\n' +
+      ' 10 |         - abbr: GH',
+    config: 'bookmarks.yaml'
+  }
+]
+[2026-10-27T18:59:06.789Z] error: end of the stream or a document separator is expected (8:1)
+
+ 5 |   Media:
+ 6 |     style: row
+ 7 |     columns: 4
+ 8 | - Developer:
+-----^
+ 9 |     - Github:
+ 10 |         - abbr: GH
+[2026-10-27T18:59:06.873Z] error: <index> YAMLException: end of the stream or a document separator is expected (8:1)
+
+ 5 |   Media:
+ 6 |     style: row
+ 7 |     columns: 4
+ 8 | - Developer:
+-----^
+ 9 |     - Github:
+ 10 |         - abbr: GH
+    at YAMLException.throwAt (file:///app/node_modules/.pnpm/js-yaml@5.5.0/node_modules/js-yaml/dist/js-yaml.mjs:1217:9)
+    at throwError (file:///app/node_modules/.pnpm/js-yaml@5.5.0/node_modules/js-yaml/dist/js-yaml.mjs:1893:16)
+    at readDocument (file:///app/node_modules/.pnpm/js-yaml@5.5.0/node_modules/js-yaml/dist/js-yaml.mjs:2593:85)
+    at parseEvents (file:///app/node_modules/.pnpm/js-yaml@5.5.0/node_modules/js-yaml/dist/js-yaml.mjs:2624:3)
+    at loadDocuments (file:///app/node_modules/.pnpm/js-yaml@5.5.0/node_modules/js-yaml/dist/js-yaml.mjs:2645:29)
+    at Module.load (file:///app/node_modules/.pnpm/js-yaml@5.5.0/node_modules/js-yaml/dist/js-yaml.mjs:2689:20)
+    at g (/app/.next/server/chunks/899.js:1:6655)
+    at n (/app/.next/server/pages/index.js:4:116151)
+    at async Promise.all (index 1)
+    at async l (/app/.next/server/pages/index.js:4:3750)
+[2026-10-27T18:59:06.964Z] error: <configValidationHandler> Configuration validation errors [
+  {
+    reason: 'end of the stream or a document separator is expected',
+    mark: {
+      name: '',
+      buffer: '---\n' +
+        '# For configuration options and examples, please see:\n' +
+        '# https://gethomepage.dev/configs/bookmarks\n' +
+        'layout:\n' +
+        '  Media:\n' +
+        '    style: row\n' +
+        '    columns: 4\n' +
+        '- Developer:\n' +
+        '    - Github:\n' +
+        '        - abbr: GH\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=github.com\n' +
+        '          href: https://github.com/seblovett\n' +
+        '    - QuickRef:\n' +
+        '        - abbr: QR\n' +
+        '          href: https://quickref.me/\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=quickref.me\n' +
+        '    - CyberChef:\n' +
+        '        - abbr: CC\n' +
+        '          href: https://gchq.github.io/CyberChef/\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=https://gchq.github.io/CyberChef/\n' +
+        '    - Draw.IO:\n' +
+        '        - abbr: DI\n' +
+        '          href: https://app.diagrams.net/\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=https://app.diagrams.net/\n' +
+        '\n' +
+        '- Admin:\n' +
+        '    - GMail:\n' +
+        '        - abbr: GM\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=gmail.com\n' +
+        '          href: https://mail.google.com/\n' +
+        '    - Fastmail:\n' +
+        '        - abbr: FM\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=mail.seblovett.co.uk\n' +
+        '          href: https://mail.seblovett.co.uk/\n' +
+        '    - Notion:\n' +
+        '        - abbr: NO\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=notion.so\n' +
+        '          href: https://notion.so/\n' +
+        '    - Calendar:\n' +
+        '        - abbr: CA\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=calendar.google.com\n' +
+        '          href: https://calendar.google.com/\n' +
+        '\n' +
+        '- Entertainment:\n' +
+        '    - YouTube:\n' +
+        '        - abbr: YT\n' +
+        '          href: https://youtube.com/\n' +
+        '    - BBC:\n' +
+        '        - abbr: BBC\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=bbc.com/news\n' +
+        '          href: https://www.bbc.co.uk/news\n' +
+        '    - Music:\n' +
+        '        - abbr: MU\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=music.youtube.com\n' +
+        '          href: https://music.youtube.com/\n' +
+        '    - YouTube:\n' +
+        '        - abbr: YT\n' +
+        '          href: https://youtube.com/\n' +
+        '- Blogs: \n' +
+        '    - Hacker News:\n' +
+        '        - abbr: HN\n' +
+        '          href: https://news.ycombinator.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=news.ycombinator.com\n' +
+        '    - Ars Technica:\n' +
+        '        - abbr: AT\n' +
+        '          href: https://arstechnica.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=arstechnica.com\n' +
+        '    - Hackaday:\n' +
+        '        - abbr: HD\n' +
+        '          href: https://hackaday.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=hackaday.com\n' +
+        '    - CNX Software:\n' +
+        '        - abbr: CN\n' +
+        '          href: https://www.cnx-software.com\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=cnx-software.com\n' +
+        '- Tools:\n' +
+        '    - Food:\n' +
+        '        - abbr: FD\n' +
+        '          href: https://food.seblovett.co.uk\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=food.seblovett.co.uk\n' +
+        '    - Calculators:\n' +
+        '        - abbr: CL\n' +
+        '          href: https://calculators.seblovett.co.uk\n' +
+        '          icon: https://www.google.com/s2/favicons?sz=32&domain=calculators.seblovett.co.uk\n' +
+        '\n',
+      position: 149,
+      line: 7,
+      column: 0,
+      snippet: ' 5 |   Media:\n' +
+        ' 6 |     style: row\n' +
+        ' 7 |     columns: 4\n' +
+        ' 8 | - Developer:\n' +
+        '-----^\n' +
+        ' 9 |     - Github:\n' +
+        ' 10 |         - abbr: GH'
+    },
+    name: 'YAMLException',
+    message: 'end of the stream or a document separator is expected (8:1)\n' +
+      '\n' +
+      ' 5 |   Media:\n' +
+      ' 6 |     style: row\n' +
+      ' 7 |     columns: 4\n' +
+      ' 8 | - Developer:\n' +
+      '-----^\n' +
+      ' 9 |     - Github:\n' +
+      ' 10 |         - abbr: GH',
+    config: 'bookmarks.yaml'
+  }
+]
+[2026-10-27T18:59:07.002Z] error: end of the stream or a document separator is expected (8:1)
+
+ 5 |   Media:
+ 6 |     style: row
+ 7 |     columns: 4
+ 8 | - Developer:
+-----^
+ 9 |     - Github:
+ 10 |         - abbr: GH

@@ -25,3 +25,6 @@
         description: Reverse proxy dashboard
         server: local-docker
         container: traefik
+        widget:
+          type: traefik
+          url: https://traefik.{{HOMEPAGE_VAR_DOMAIN}}

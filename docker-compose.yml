@@ -160,7 +160,7 @@ services:
     depends_on:
       - socket-proxy
     environment:
-      - HOMEPAGE_ALLOWED_HOSTS=hp.${DOMAIN}
+      - HOMEPAGE_ALLOWED_HOSTS=homepage.${DOMAIN}
       - HOMEPAGE_VAR_DOMAIN=${DOMAIN}
       - TZ=${TZ}
     volumes:
@@ -170,6 +170,6 @@ services:
       - socket
     labels:
       - traefik.enable=true
-      - traefik.http.routers.homepage.rule=Host(`hp.${DOMAIN}`)
+      - traefik.http.routers.homepage.rule=Host(`homepage.${DOMAIN}`)
       - traefik.http.routers.homepage.entrypoints=websecure
       - traefik.http.services.homepage.loadbalancer.server.port=3000
