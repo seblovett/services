@@ -1,0 +1,11 @@
+http:
+  routers:
+    cockpit:
+      rule: Host(`cockpit.seblovett.co.uk`)
+      entryPoints: [websecure]
+      service: cockpit
+  services:
+    cockpit:
+      loadBalancer:
+        servers:
+          - url: http://172.20.0.1:9090

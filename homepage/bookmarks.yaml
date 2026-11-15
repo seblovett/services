@@ -79,4 +79,8 @@
         - abbr: CL
           href: https://calculators.seblovett.co.uk
           icon: https://www.google.com/s2/favicons?sz=32&domain=calculators.seblovett.co.uk
+    - Fixings:
+        - abbr: FX
+          href: https://fixings.seblovett.co.uk
+          icon: https://www.google.com/s2/favicons?sz=32&domain=fixings.seblovett.co.uk
 

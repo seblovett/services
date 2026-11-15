@@ -10,6 +10,7 @@ networks:
       config:
         - subnet: 172.20.0.0/24   # change if it clashes with your home LAN
           ip_range: 172.20.0.128/25
+          gateway: 172.20.0.1
   socket:
     name: socket
     internal: true               # no outbound access; only for the socket proxy
@@ -96,8 +97,10 @@ services:
       - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --providers.file.directory=/dynamic
     volumes:
       - ./data/traefik:/letsencrypt
+      - ./traefik-dynamic:/dynamic:ro
     # Intentionally no "ports:" section
     networks:
       proxy:
