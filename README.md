@@ -1,7 +1,8 @@
 # Self-hosted services (VPN-only)
 
-A Docker Compose stack on a DigitalOcean droplet. All web services are
-reachable **only through the WireGuard VPN**. The only port open to the
+A Docker Compose stack on a DigitalOcean droplet, plus Cockpit running
+natively on the host. All web services are reachable **only through the
+WireGuard VPN**. The only port open to the
 internet is UDP 51820 (WireGuard).
 
 | Service | URL | Container | Internal port |
@@ -11,6 +12,7 @@ internet is UDP 51820 (WireGuard).
 | Part-DB | `https://parts.<domain>` | `partdb` | 80 |
 | wg-easy (VPN admin) | `https://wg.<domain>` | `wg-easy` | 51821 |
 | Traefik dashboard | `https://traefik.<domain>` | `traefik` | (internal) |
+| Cockpit (host admin) | `https://cockpit.<domain>` | none (runs natively on the host) | 9090 on `172.20.0.1` |
 
 > Keep this table up to date if you rename a subdomain (see
 > [Changing a subdomain](#changing-a-subdomain)).
@@ -54,6 +56,9 @@ internet is UDP 51820 (WireGuard).
    │   ┌─── Docker network "socket" (internal, no internet) ───┐     │
    │   │   socket-proxy ◄── traefik, homepage (read-only API)  │     │
    │   └───────────────────────────────────────────────────────┘     │
+   │                                                                 │
+   │   cockpit (native, runs on the host, not in Docker)             │
+   │        listens on 172.20.0.1:9090 ◄── traefik (file provider)   │
    └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,6 +75,10 @@ Key design points:
   certificate issuance.
 - **No container gets the raw Docker socket.** Traefik and Homepage talk to a
   filtered, read-only socket proxy instead.
+- **Cockpit is the one non-Docker service.** It administers the host itself,
+  so it runs natively and is bound to the `proxy` bridge gateway
+  (`172.20.0.1`) instead of all interfaces. Traefik reaches it through a
+  file-provider route.
 
 ---
 
@@ -92,12 +101,17 @@ services/
 │   ├── services.yaml      # tiles shown on the dashboard
 │   ├── docker.yaml        # how Homepage reaches Docker (via socket-proxy)
 │   └── ...                # other files Homepage creates on first start
+├── traefik-dynamic/       # Traefik file-provider routes (non-Docker services)
+│   └── cockpit.yml        # routes cockpit.<domain> to the host's Cockpit
 └── data/                  # all persistent data (BACK THIS UP)
     ├── wg-easy/           # WireGuard keys, clients, wg-easy database
     ├── traefik/           # acme.json (certificates)
     ├── partdb/            # uploads/, public_media/, db/ (SQLite)
     └── actual/            # Actual Budget server files and budgets
 ```
+
+Cockpit's own configuration lives on the host, outside this folder (see
+[Cockpit](#cockpit-host-admin-ui)).
 
 ### `.env` variables
 
@@ -147,7 +161,7 @@ Address allocation in `proxy`:
 
 | Range | Use |
 |---|---|
-| `172.20.0.1` | Docker gateway |
+| `172.20.0.1` | Docker gateway (pinned in `docker-compose.yml`). Cockpit listens here |
 | `172.20.0.2`–`.127` | Reserved for fixed IPs |
 | `172.20.0.10` | **Traefik (fixed)**. DNS points here, so it must never change |
 | `172.20.0.128`–`.254` | Automatic IPs for all other containers (`ip_range`) |
@@ -158,12 +172,21 @@ another container is pinned to. That causes the
 `failed to set up container networking: Address already in use` error.
 Restricting automatic addresses to `.128/25` makes that impossible.
 
+Why the `gateway` is pinned: when `ip_range` is set and no `gateway` is
+given, Docker takes the gateway from the start of the range (here
+`172.20.0.128`), not `.1`. Cockpit binds to `172.20.0.1`, so the compose
+file sets `gateway: 172.20.0.1` explicitly. Changing the gateway means
+recreating the network (`docker compose down`, `docker network rm proxy`,
+`docker compose up -d`).
+
 Only Traefik has a fixed IP. Everything else is reached by container name.
 
 > **Changing the subnet** (e.g. if your home LAN also uses `172.20.x.x`):
 > update all of these together:
-> the `subnet` and `ip_range` in `docker-compose.yml`; Traefik's
-> `ipv4_address`; Part-DB's `TRUSTED_PROXIES`; the Cloudflare `*` record;
+> the `subnet`, `ip_range` and `gateway` in `docker-compose.yml`; Traefik's
+> `ipv4_address`; Part-DB's `TRUSTED_PROXIES`; Cockpit's `ListenStream`
+> (systemd override) and the URL in `traefik-dynamic/cockpit.yml`; the host
+> firewall rule for Cockpit; the Cloudflare `*` record;
 > and the `AllowedIPs` in wg-easy's admin UI (*not* `INIT_ALLOWED_IPS`, which
 > only applies on first start). Then re-download or update each client
 > config. Recreate the network with `docker compose down`,
@@ -243,6 +266,12 @@ routing.
 The global Traefik settings (entrypoints, certificate resolver, Docker
 provider) are the `command:` flags on the `traefik` service.
 
+Things that aren't Docker containers (currently only Cockpit) are routed
+with the **file provider** instead: Traefik loads every YAML file in
+`traefik-dynamic/` (mounted at `/dynamic`) and watches it for changes. The
+domain is written literally in these files, because Traefik doesn't
+substitute `${DOMAIN}` in them.
+
 ---
 
 ## The services in detail
@@ -268,6 +297,8 @@ provider) are the `command:` flags on the `traefik` service.
 - Image: `traefik:v3`, fixed IP `172.20.0.10`, no published ports.
 - Talks to Docker via `tcp://socket-proxy:2375`.
 - Uses the `cloudflare` certificate resolver for the wildcard certificate.
+- Also loads static routes from `./traefik-dynamic` (flag
+  `--providers.file.directory=/dynamic`, mounted read-only at `/dynamic`).
 
 ### socket-proxy
 
@@ -308,6 +339,88 @@ provider) are the `command:` flags on the `traefik` service.
   `server:` / `container:` on each tile in `services.yaml`.
 - Config changes are picked up automatically; just refresh the page.
 
+### Cockpit (host admin UI)
+
+The one service that does **not** run in Docker. Cockpit is a web UI for
+administering the host itself (logs, updates, storage, networking, a
+terminal), so it runs natively from the Ubuntu package under systemd
+(`cockpit.socket`) rather than in a container.
+
+- **URL:** `https://cockpit.<domain>` (via Traefik), or directly at
+  `https://172.20.0.1:9090` (self-signed certificate warning). The direct
+  address doesn't depend on Traefik or the Docker services, so it's a handy
+  fallback when something in the stack is broken.
+- **Bound to `172.20.0.1:9090` only**, the host's address on the `proxy`
+  bridge. It's reachable from the host, from containers on `proxy`, and from
+  VPN clients (their traffic for `172.20.0.0/24` goes through the tunnel). It
+  is not reachable from the LAN or the internet. Cockpit's default is all
+  interfaces on port 9090, so don't remove the override below.
+- **Login** is a host account. A sudo-capable user gets what is effectively a
+  root shell, so use a strong password.
+- **Updates** come with the host's packages (`apt upgrade`), not Docker.
+
+Its configuration lives in three places. The first two are on the host,
+outside this folder:
+
+`/etc/systemd/system/cockpit.socket.d/override.conf` (create it with
+`sudo systemctl edit cockpit.socket`):
+
+```ini
+[Socket]
+ListenStream=
+ListenStream=172.20.0.1:9090
+FreeBind=yes
+```
+
+`FreeBind=yes` lets the socket start at boot before Docker has created the
+bridge. A side effect: `ss` shows the listener even if the address doesn't
+exist, so also confirm with `ip -br addr | grep 172.20.0.1`.
+
+`/etc/cockpit/cockpit.conf` (use the real domain; `Origins` is required for
+websockets behind a proxy, and `AllowUnencrypted` is needed because Traefik
+talks plain HTTP to Cockpit over the bridge):
+
+```ini
+[WebService]
+Origins = https://cockpit.<domain> wss://cockpit.<domain>
+ProtocolHeader = X-Forwarded-Proto
+AllowUnencrypted = true
+```
+
+`traefik-dynamic/cockpit.yml` (in this folder; real domain again):
+
+```yaml
+http:
+  routers:
+    cockpit:
+      rule: Host(`cockpit.<domain>`)
+      entryPoints: [websecure]
+      service: cockpit
+  services:
+    cockpit:
+      loadBalancer:
+        servers:
+          - url: http://172.20.0.1:9090
+```
+
+Traefik's compose entry needs `--providers.file.directory=/dynamic` in
+`command:` and `- ./traefik-dynamic:/dynamic:ro` under `volumes:`.
+
+To apply after changes:
+
+```bash
+sudo systemctl daemon-reload && sudo systemctl restart cockpit.socket
+docker compose up -d traefik     # only needed when the flag/volume changed;
+                                 # edits to files in traefik-dynamic/ are live
+```
+
+If the host firewall is active (e.g. ufw), the proxy subnet must be allowed
+to reach Cockpit, since Traefik's requests arrive from the bridge:
+
+```bash
+sudo ufw allow from 172.20.0.0/24 to any port 9090 proto tcp
+```
+
 ---
 
 ## First-time setup
@@ -335,6 +448,10 @@ For rebuilding from scratch (e.g. on a new droplet).
    minute or two to issue.
 6. **App setup:** set the Actual server password; log in to Part-DB with the
    password from its logs and change it.
+7. **Cockpit (host admin):** `sudo apt install cockpit`, then create the
+   override, `cockpit.conf` and `traefik-dynamic/cockpit.yml` described in
+   [Cockpit](#cockpit-host-admin-ui). These are the only parts of the
+   setup outside the Compose project.
 
 When restoring from a backup instead, put `data/` and `homepage/` back
 before step 3. Existing VPN clients keep working if `data/wg-easy/` is
@@ -370,6 +487,11 @@ config. One client per device.
 4. `docker compose up -d`
 
 No DNS or certificate changes are needed: the wildcard covers it.
+
+Cockpit is the exception to the label-based steps above: its hostname is
+written literally in `traefik-dynamic/cockpit.yml` and in the `Origins`
+line of `/etc/cockpit/cockpit.conf`, so update both (and restart
+`cockpit.socket`).
 
 ### Adding a new service
 
@@ -408,7 +530,8 @@ docker image prune -f      # remove old image versions
 
 Back up first. Check release notes for breaking changes, especially wg-easy
 (pinned to major version 15) and Traefik (pinned to v3). Part-DB migrates
-its database automatically on start.
+its database automatically on start. Cockpit isn't a container; it updates
+with the host (`sudo apt upgrade`).
 
 ### Backups
 
@@ -426,6 +549,7 @@ docker compose ps                     # status of all services
 docker compose logs -f <service>      # follow a service's logs
 docker compose restart <service>      # restart one service
 docker exec wg-easy wg show           # live WireGuard peers and handshakes
+ss -tlnp | grep 9090                  # Cockpit should be bound to 172.20.0.1 only
 docker network inspect proxy --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{"\n"}}{{end}}'
 ```
 
@@ -440,10 +564,15 @@ docker network inspect proxy --format '{{range .Containers}}{{.Name}} {{.IPv4Add
 | `data/wg-easy/` | WireGuard server keys, clients, admin login | Every device must be re-enrolled |
 | `data/traefik/acme.json` | Certificates | Not critical, Traefik re-issues automatically |
 | `homepage/` | Dashboard config | Minor, easy to recreate |
-| `.env`, `docker-compose.yml`, `README.md` | Configuration and secrets | Stack can't be rebuilt as-is |
+| `.env`, `docker-compose.yml`, `README.md`, `traefik-dynamic/` | Configuration and secrets | Stack can't be rebuilt as-is |
 
 Docker images are **not** backed up; they're re-downloaded with
 `docker compose pull`.
+
+Cockpit's host files (`/etc/cockpit/cockpit.conf` and the systemd override)
+are outside the `services` folder, so the backup doesn't cover them unless
+you add them to `backup.sh`. They're small; the [Cockpit](#cockpit-host-admin-ui)
+section has everything needed to recreate them.
 
 ### Why the stack is stopped during a backup
 
@@ -589,10 +718,11 @@ Usually a container IP collision on the `proxy` network.
    (at `.10`). If other containers have low addresses, the `ip_range` isn't
    in effect:
    ```bash
-   grep -n -E 'ip_range|ipv4_address' docker-compose.yml
+   grep -n -E 'ip_range|ipv4_address|gateway' docker-compose.yml
    ```
-   This should print exactly two lines: `ip_range: 172.20.0.128/25` and
-   Traefik's `ipv4_address: 172.20.0.10`. Fix the file, then:
+   This should print exactly three lines: `ip_range: 172.20.0.128/25`,
+   `gateway: 172.20.0.1`, and Traefik's `ipv4_address: 172.20.0.10`. Fix the
+   file, then:
    ```bash
    docker compose down && docker network rm proxy && docker compose up -d
    ```
@@ -623,6 +753,27 @@ Usually a container IP collision on the `proxy` network.
 - **Certificate warning?** Check `docker logs traefik 2>&1 | grep -i acme`
   for Cloudflare token or rate-limit errors.
 
+### Cockpit doesn't load
+
+Work from the inside out:
+
+1. **Is the address on the host?** `ip -br addr | grep 172.20.0.1` must show
+   it on a `br-...` interface. If not, the `proxy` network has a different
+   gateway (`docker network inspect proxy --format '{{json .IPAM.Config}}'`),
+   usually because `gateway:` isn't pinned or the network wasn't recreated
+   after pinning it. `ss -tlnp | grep 9090` is **not** proof: with `FreeBind`
+   it shows the listener even when the address doesn't exist.
+2. **Does it answer on the host?** `curl -kI https://172.20.0.1:9090`
+3. **Can containers reach it?**
+   `docker run --rm --network proxy curlimages/curl -kI https://172.20.0.1:9090`.
+   A timeout here (when step 2 works) means the host firewall; see the ufw
+   rule in the [Cockpit](#cockpit-host-admin-ui) section.
+4. **Is Traefik routing it?** The dashboard should list a `cockpit@file`
+   router. If not, check the file provider flag and volume, that
+   `traefik-dynamic/cockpit.yml` exists, and `docker logs traefik --tail 50`.
+5. **Page loads but login or the websocket fails?** The `Origins` line in
+   `/etc/cockpit/cockpit.conf` must match the hostname exactly.
+
 ### Homepage shows "Host validation failed"
 
 `HOMEPAGE_ALLOWED_HOSTS` doesn't match the subdomain you're using.
@@ -640,6 +791,11 @@ Check `TRUSTED_PROXIES` covers the `proxy` subnet.
   port and the wg-easy UI binds to `127.0.0.1` only. Prefer the DigitalOcean
   Cloud Firewall, which sits outside the droplet and can't be bypassed by
   Docker.
+- **Cockpit** is a native host service, so the Docker/ufw port-publishing
+  issue above doesn't apply, but it must never listen on a public address
+  (its default is all interfaces on 9090). It's bound to `172.20.0.1`;
+  verify with `ss -tlnp | grep 9090`. A Cockpit login is effectively root on
+  the host, so use a strong password.
 - Consider restricting SSH to key-only auth (and ideally to known IPs).
 - `.env`, `backup.env`, `data/wg-easy/` and `data/traefik/acme.json` contain secrets. Keep
   them out of git and out of unencrypted backups.
