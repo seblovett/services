@@ -11,6 +11,10 @@
         description: Electronic parts inventory
         server: local-docker
         container: partdb
+    - Samba Share:
+        icon: samba-server.png
+        href: smb://nas.seblovett.co.uk/Storage
+        description: Samba server file share
 
 - Infrastructure:
     - WireGuard:
