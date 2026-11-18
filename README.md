@@ -13,6 +13,7 @@ internet is UDP 51820 (WireGuard).
 | wg-easy (VPN admin) | `https://wg.<domain>` | `wg-easy` | 51821 |
 | Traefik dashboard | `https://traefik.<domain>` | `traefik` | (internal) |
 | Cockpit (host admin) | `https://cockpit.<domain>` | none (runs natively on the host) | 9090 on `172.20.0.1` |
+| Samba (file share) | `\\nas.<domain>\Storage` (SMB, not HTTP; no Traefik) | `samba` | 445 on `172.20.0.11` |
 
 > Keep this table up to date if you rename a subdomain (see
 > [Changing a subdomain](#changing-a-subdomain)).
@@ -51,6 +52,7 @@ internet is UDP 51820 (WireGuard).
    │   │                                                           │ │
    │   │   traefik (172.20.0.10)  ── routes by hostname ──►        │ │
    │   │        homepage · actual · partdb · wg-easy UI            │ │
+   │   │   samba (172.20.0.11)  ◄── direct on 445, not via Traefik │ │
    │   └───────────────────────────────────────────────────────────┘ │
    │                                                                 │
    │   ┌─── Docker network "socket" (internal, no internet) ───┐     │
@@ -75,6 +77,10 @@ Key design points:
   certificate issuance.
 - **No container gets the raw Docker socket.** Traefik and Homepage talk to a
   filtered, read-only socket proxy instead.
+- **Samba is not behind Traefik.** SMB isn't HTTP, so there are no hostname
+  routes for it. The `samba` container has a fixed IP (`172.20.0.11`) on the
+  `proxy` network and publishes no host ports; VPN clients reach it directly
+  on port 445 through the tunnel, via the `nas.<domain>` DNS record.
 - **Cockpit is the one non-Docker service.** It administers the host itself,
   so it runs natively and is bound to the `proxy` bridge gateway
   (`172.20.0.1`) instead of all interfaces. Traefik reaches it through a
@@ -103,12 +109,20 @@ services/
 │   └── ...                # other files Homepage creates on first start
 ├── traefik-dynamic/       # Traefik file-provider routes (non-Docker services)
 │   └── cockpit.yml        # routes cockpit.<domain> to the host's Cockpit
+├── samba/                 # Samba config (mounted into the samba container)
+│   ├── smb.conf           # global settings and the [Storage] share
+│   ├── users.conf         # SMB users and passwords (chmod 600, never commit)
+│   └── users.conf.example # template for users.conf
 └── data/                  # all persistent data (BACK THIS UP)
     ├── wg-easy/           # WireGuard keys, clients, wg-easy database
     ├── traefik/           # acme.json (certificates)
     ├── partdb/            # uploads/, public_media/, db/ (SQLite)
     └── actual/            # Actual Budget server files and budgets
 ```
+
+The Samba share's files live **outside** this folder, at `/srv/samba` on the
+host (ideally a DigitalOcean block storage volume mounted there). See
+[Samba](#samba-file-share).
 
 Cockpit's own configuration lives on the host, outside this folder (see
 [Cockpit](#cockpit-host-admin-ui)).
@@ -164,6 +178,7 @@ Address allocation in `proxy`:
 | `172.20.0.1` | Docker gateway (pinned in `docker-compose.yml`). Cockpit listens here |
 | `172.20.0.2`–`.127` | Reserved for fixed IPs |
 | `172.20.0.10` | **Traefik (fixed)**. DNS points here, so it must never change |
+| `172.20.0.11` | **Samba (fixed)**. The `nas` DNS record points here |
 | `172.20.0.128`–`.254` | Automatic IPs for all other containers (`ip_range`) |
 
 Why `ip_range` matters: without it, Docker hands out automatic addresses
@@ -179,14 +194,16 @@ file sets `gateway: 172.20.0.1` explicitly. Changing the gateway means
 recreating the network (`docker compose down`, `docker network rm proxy`,
 `docker compose up -d`).
 
-Only Traefik has a fixed IP. Everything else is reached by container name.
+Traefik (`.10`) and Samba (`.11`) have fixed IPs. Everything else is reached
+by container name.
 
 > **Changing the subnet** (e.g. if your home LAN also uses `172.20.x.x`):
 > update all of these together:
 > the `subnet`, `ip_range` and `gateway` in `docker-compose.yml`; Traefik's
-> `ipv4_address`; Part-DB's `TRUSTED_PROXIES`; Cockpit's `ListenStream`
+> and Samba's `ipv4_address`; Part-DB's `TRUSTED_PROXIES`; Samba's
+> `hosts allow` in `samba/smb.conf`; Cockpit's `ListenStream`
 > (systemd override) and the URL in `traefik-dynamic/cockpit.yml`; the host
-> firewall rule for Cockpit; the Cloudflare `*` record;
+> firewall rule for Cockpit; the Cloudflare `*` and `nas` records;
 > and the `AllowedIPs` in wg-easy's admin UI (*not* `INIT_ALLOWED_IPS`, which
 > only applies on first start). Then re-download or update each client
 > config. Recreate the network with `docker compose down`,
@@ -201,10 +218,13 @@ Only Traefik has a fixed IP. Everything else is reached by container name.
 | Type | Name | Value | Proxy status |
 |---|---|---|---|
 | A | `*` | `172.20.0.10` | **DNS only** (grey cloud) |
+| A | `nas` | `172.20.0.11` | **DNS only** (grey cloud) |
 | A | `vpn` *(optional)* | droplet public IP | DNS only |
 
-- The wildcard covers every subdomain, so **new services don't need new DNS
-  records**.
+- The wildcard covers every subdomain, so **new web services don't need new
+  DNS records**. The exception is anything not routed by Traefik, like Samba:
+  the wildcard would send `nas.<domain>` to Traefik, which doesn't speak SMB,
+  so `nas` has its own record pointing straight at the Samba container.
 - Publishing a private IP in public DNS is harmless: it's only reachable by
   someone on the VPN.
 - If `WG_HOST` is a hostname rather than an IP, it must have its own
@@ -272,6 +292,9 @@ with the **file provider** instead: Traefik loads every YAML file in
 domain is written literally in these files, because Traefik doesn't
 substitute `${DOMAIN}` in them.
 
+Samba is neither: Traefik only routes HTTP(S) by hostname, and SMB has no
+hostname to route on (it's TCP 445, no SNI), so it bypasses Traefik entirely.
+
 ---
 
 ## The services in detail
@@ -338,6 +361,32 @@ substitute `${DOMAIN}` in them.
 - Container status dots come from `docker.yaml` (→ socket-proxy) plus
   `server:` / `container:` on each tile in `services.yaml`.
 - Config changes are picked up automatically; just refresh the page.
+
+### Samba (file share)
+
+- Image: `dockurr/samba:4.22.6` (pinned), fixed IP `172.20.0.11`, **no published
+  ports**. Reached by VPN clients directly on TCP 445 at `nas.<domain>`; this
+  works without any client changes because `172.20.0.0/24` is already in their
+  `AllowedIPs`.
+- **Connect:** Windows `\\nas.<domain>\Storage`; macOS/Linux
+  `smb://nas.<domain>/Storage`. Log in with a user from `samba/users.conf`.
+- **Config** is two files in `samba/`, both mounted into the container:
+  - `smb.conf`: global settings (SMB3 minimum, SMB encryption "desired", no
+    guest access, no NetBIOS or printing, `hosts allow` limited to the proxy
+    subnet) and the `[Storage]` share, which only members of the `smbusers`
+    group can use.
+  - `users.conf`: `username:UID:group:GID:password` per line, created from
+    `users.conf.example`. It holds plaintext passwords, so `chmod 600` and
+    never commit it. After editing it, run
+    `docker compose up -d --force-recreate samba`.
+- **Storage** is `/srv/samba` on the host, mounted at `/storage`. It's owned by
+  UID/GID `1100`, matching the `smbusers` group in `users.conf`. It's
+  deliberately **not** under `data/`: `backup.sh` stops the whole stack and
+  backs up `data/`, and a large file store would make that slow.
+- **Every client looks the same.** wg-easy NATs VPN traffic, so Samba sees one
+  source address for all users. Access control is by SMB login, not by IP.
+- **Check the config** after editing `smb.conf`:
+  `docker exec samba testparm -s`
 
 ### Cockpit (host admin UI)
 
@@ -453,7 +502,20 @@ For rebuilding from scratch (e.g. on a new droplet).
    [Cockpit](#cockpit-host-admin-ui). These are the only parts of the
    setup outside the Compose project.
 
-When restoring from a backup instead, put `data/` and `homepage/` back
+8. **Samba (file share):**
+   ```bash
+   sudo mkdir -p /srv/samba                  # or mount a block storage volume here first
+   sudo chown 1100:1100 /srv/samba && sudo chmod 2770 /srv/samba
+   cp samba/users.conf.example samba/users.conf && chmod 600 samba/users.conf
+   # edit samba/users.conf: set a real username and password
+   docker compose up -d samba
+   ```
+   `users.conf` must exist **before** `docker compose up`, or Docker creates a
+   directory with that name instead. Then add the Cloudflare record
+   `A nas → 172.20.0.11` (DNS only) and test from a VPN-connected device (see
+   [Samba](#samba-file-share)).
+
+When restoring from a backup instead, put `data/`, `homepage/` and `samba/` back
 before step 3. Existing VPN clients keep working if `data/wg-easy/` is
 restored and the droplet keeps the same public IP (otherwise update the
 host in the wg-easy admin UI and re-download client configs).
@@ -513,12 +575,23 @@ line of `/etc/cockpit/cockpit.conf`, so update both (and restart
          - traefik.http.services.myapp.loadbalancer.server.port=8080
    ```
 2. Do **not** add a `ports:` section; that would expose it on the droplet's
-   public IP, bypassing the VPN.
+   public IP, bypassing the VPN. (Non-HTTP services such as Samba can't use
+   Traefik labels: give them a fixed IP in the `.2`-`.127` range and their own
+   specific DNS record instead.)
 3. If the app has a "trusted proxies" or "base URL" setting, set it
    (proxies: `172.20.0.0/24`; URL: `https://myapp.<domain>`).
 4. Optionally add a tile in `homepage/services.yaml`.
 5. `docker compose up -d`, then check the Traefik dashboard for the new
    router.
+
+### Adding a Samba user
+
+Add a line to `samba/users.conf` (same group `smbusers` and GID `1100`, a new
+unique UID such as `1101`), then:
+
+```bash
+docker compose up -d --force-recreate samba
+```
 
 ### Updating images
 
@@ -529,7 +602,10 @@ docker image prune -f      # remove old image versions
 ```
 
 Back up first. Check release notes for breaking changes, especially wg-easy
-(pinned to major version 15) and Traefik (pinned to v3). Part-DB migrates
+(pinned to major version 15) and Traefik (pinned to v3). Samba is pinned to an
+exact version (`dockurr/samba:4.22.6`), so `docker compose pull` won't update
+it: bump the tag in `docker-compose.yml` yourself, now and then, to pick up
+Samba security fixes. Part-DB migrates
 its database automatically on start. Cockpit isn't a container; it updates
 with the host (`sudo apt upgrade`).
 
@@ -549,6 +625,7 @@ docker compose ps                     # status of all services
 docker compose logs -f <service>      # follow a service's logs
 docker compose restart <service>      # restart one service
 docker exec wg-easy wg show           # live WireGuard peers and handshakes
+docker exec samba testparm -s         # validate and print the effective Samba config
 ss -tlnp | grep 9090                  # Cockpit should be bound to 172.20.0.1 only
 docker network inspect proxy --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{"\n"}}{{end}}'
 ```
@@ -564,7 +641,16 @@ docker network inspect proxy --format '{{range .Containers}}{{.Name}} {{.IPv4Add
 | `data/wg-easy/` | WireGuard server keys, clients, admin login | Every device must be re-enrolled |
 | `data/traefik/acme.json` | Certificates | Not critical, Traefik re-issues automatically |
 | `homepage/` | Dashboard config | Minor, easy to recreate |
+| `samba/` | `smb.conf` and `users.conf` (SMB logins) | Share can't start; users must be recreated |
+| `/srv/samba` (outside `data/`) | The files in the share | **Not covered by `backup.sh`**: back it up separately (see below) |
 | `.env`, `docker-compose.yml`, `README.md`, `traefik-dynamic/` | Configuration and secrets | Stack can't be rebuilt as-is |
+
+**The Samba share is deliberately not under `data/`.** `backup.sh` stops the
+stack for a consistent SQLite copy, and a big file store would make that
+downtime long. Plain files don't need the stack stopped, so give `/srv/samba`
+its own restic job (a separate cron entry, same repository or a different one)
+that doesn't stop any containers. Also check that `backup.sh` includes
+`samba/` (it holds `users.conf`); if it only copies `data/`, add it.
 
 Docker images are **not** backed up; they're re-downloaded with
 `docker compose pull`.
@@ -720,8 +806,9 @@ Usually a container IP collision on the `proxy` network.
    ```bash
    grep -n -E 'ip_range|ipv4_address|gateway' docker-compose.yml
    ```
-   This should print exactly three lines: `ip_range: 172.20.0.128/25`,
-   `gateway: 172.20.0.1`, and Traefik's `ipv4_address: 172.20.0.10`. Fix the
+   This should print exactly four lines: `ip_range: 172.20.0.128/25`,
+   `gateway: 172.20.0.1`, and the `ipv4_address` lines for Traefik
+   (`172.20.0.10`) and Samba (`172.20.0.11`). Fix the
    file, then:
    ```bash
    docker compose down && docker network rm proxy && docker compose up -d
@@ -774,6 +861,27 @@ Work from the inside out:
 5. **Page loads but login or the websocket fails?** The `Origins` line in
    `/etc/cockpit/cockpit.conf` must match the hostname exactly.
 
+### Can't connect to the Samba share
+
+Work from the inside out:
+
+1. **Is it running?** `docker compose ps samba` and
+   `docker compose logs --tail 50 samba`. If it exited right away, check that
+   `samba/users.conf` exists as a **file** (not a directory) and that
+   `docker exec samba testparm -s` parses without errors.
+2. **Does the name resolve to `172.20.0.11`?** `nslookup nas.<domain>`. If it
+   returns `172.20.0.10`, the `nas` record is missing and the wildcard is
+   answering (that's Traefik, which doesn't speak SMB).
+3. **Can you reach port 445 over the VPN?** From a connected device, e.g.
+   `nc -vz 172.20.0.11 445`. A timeout usually means the VPN isn't up. Also
+   check that the device (or its network) doesn't block outbound 445.
+4. **"Access denied" or login loops?** Check the username and password in
+   `users.conf`, and that the folder is owned by `1100:1100`
+   (`ls -ldn /srv/samba`). On Windows, use the user name only (no domain
+   prefix) and disconnect old mappings (`net use * /delete`) before retrying.
+5. **Connects but can't write?** Same ownership check, and that the user is in
+   the `smbusers` group with GID `1100` in `users.conf`.
+
 ### Homepage shows "Host validation failed"
 
 `HOMEPAGE_ALLOWED_HOSTS` doesn't match the subdomain you're using.
@@ -796,6 +904,11 @@ Check `TRUSTED_PROXIES` covers the `proxy` subnet.
   (its default is all interfaces on 9090). It's bound to `172.20.0.1`;
   verify with `ss -tlnp | grep 9090`. A Cockpit login is effectively root on
   the host, so use a strong password.
+- **Samba** must never get a `ports:` section: SMB (445) on the droplet's
+  public IP would bypass `ufw`. It's only reachable at its fixed IP on the
+  `proxy` network, i.e. through the VPN, and `smb.conf` has no guest access
+  and allows only the proxy subnet. Treat the `users.conf` passwords like
+  any other secret.
 - Consider restricting SSH to key-only auth (and ideally to known IPs).
 - `.env`, `backup.env`, `data/wg-easy/` and `data/traefik/acme.json` contain secrets. Keep
   them out of git and out of unencrypted backups.

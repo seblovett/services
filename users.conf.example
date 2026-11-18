@@ -1,0 +1,12 @@
+# Copy to users.conf, then: chmod 600 users.conf
+# (users.conf holds plaintext passwords: never commit it.)
+#
+# One user per line:  username:UID:groupname:GID:password
+#   - the group must stay "smbusers" with GID 1100: smb.conf grants access
+#     to that group, and /srv/samba on the host is owned by GID 1100
+#   - give each user a unique UID (1100, 1101, ...)
+#   - the password can't contain ":" 
+#   - an optional 6th field sets the home directory; /storage is fine
+#
+# After changing this file: docker compose up -d --force-recreate samba
+youruser:1100:smbusers:1100:CHANGE-ME:/storage

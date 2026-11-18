@@ -176,3 +176,22 @@ services:
       - traefik.http.routers.homepage.rule=Host(`homepage.${DOMAIN}`)
       - traefik.http.routers.homepage.entrypoints=websecure
       - traefik.http.services.homepage.loadbalancer.server.port=3000
+
+  # -------------------------------------------------------------------- Samba
+  # SMB file share. SMB isn't HTTP, so Traefik does NOT route it: clients
+  # connect straight to this container's fixed IP on the proxy network, via
+  # the "nas" DNS record (A nas -> 172.20.0.11). No host ports are published.
+  # Share storage lives outside ./data on purpose, so a large file store
+  # doesn't lengthen the stop-the-stack backup (see README).
+  samba:
+    image: dockurr/samba:4.22.6
+    container_name: samba
+    restart: unless-stopped
+    volumes:
+      - ./samba/smb.conf:/etc/samba/smb.conf
+      - ./samba/users.conf:/etc/samba/users.conf
+      - /mnt/vol_share_seblo:/storage
+    networks:
+      proxy:
+        ipv4_address: 172.20.0.11
+    # Intentionally no "ports:" section
