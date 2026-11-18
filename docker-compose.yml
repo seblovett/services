@@ -35,7 +35,7 @@ services:
       # Split tunnel: clients only route the VPN subnet + Docker proxy network
       - INIT_ALLOWED_IPS=10.8.0.0/24,172.20.0.0/24
     volumes:
-      - ./data/wg-easy:/etc/wireguard
+      - /mnt/vol_share_seblo/data/wg-easy:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     ports:
       - "51820:51820/udp"
@@ -99,7 +99,7 @@ services:
       - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
       - --providers.file.directory=/dynamic
     volumes:
-      - ./data/traefik:/letsencrypt
+      - /mnt/vol_share_seblo/data/traefik:/letsencrypt
       - ./traefik-dynamic:/dynamic:ro
     # Intentionally no "ports:" section
     networks:
@@ -129,9 +129,9 @@ services:
       - ALLOW_ATTACHMENT_DOWNLOADS=0
       - USE_GRAVATAR=0
     volumes:
-      - ./data/partdb/uploads:/var/www/html/uploads
-      - ./data/partdb/public_media:/var/www/html/public/media
-      - ./data/partdb/db:/var/www/html/var/db
+      - /mnt/vol_share_seblo/data/partdb/uploads:/var/www/html/uploads
+      - /mnt/vol_share_seblo/data/partdb/public_media:/var/www/html/public/media
+      - /mnt/vol_share_seblo/data/partdb/db:/var/www/html/var/db
     networks:
       - proxy
     labels:
@@ -146,7 +146,7 @@ services:
     container_name: actual
     restart: unless-stopped
     volumes:
-      - ./data/actual:/data
+      - /mnt/vol_share_seblo/data/actual:/data
     networks:
       - proxy
     labels:
@@ -190,7 +190,7 @@ services:
     volumes:
       - ./samba/smb.conf:/etc/samba/smb.conf
       - ./samba/users.conf:/etc/samba/users.conf
-      - /mnt/vol_share_seblo:/storage
+      - /mnt/vol_share_seblo/share:/storage
     networks:
       proxy:
         ipv4_address: 172.20.0.11
